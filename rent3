@@ -52,8 +52,8 @@ void addHome(char nameH[20][20],APTINFO houseInfo[],int houseCount,int flagHouse
 void displayEeachApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt);
 void displayEachHouse(char nameH[20][20],APTINFO houseInfo[],int houseCount, int flagHouse);
 void aptCalcEach(APTINFO aptInfo[],int aptCount,int rent[100],int close[100],int *rentAverageF,int *closeAverageF);
-void changeRate(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount);
-void cahngeInflation(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *getInflation,double *inflationRate);
+void changeRate(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *inflationRate);
+void cahngeInflation(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *getInflation,double *inflationRate,int *flag);
 
 main(){
 	int choice=0,i,aptCount=0,houseCount=0;
@@ -62,6 +62,7 @@ main(){
 	char nameH[20][20]={"\0"}; //for store house names
 	int flagApt=0,flagHouse=0;
 	double inflation=0.0;
+	double inflationRate=0.0;
 
 	APTINFO aptInfo[200];  APTINFO houseInfo[200];
 
@@ -94,7 +95,7 @@ main(){
 			pause;
 			break;
 		case 2:
-			changeRate(&inflation,aptInfo,houseInfo,aptCount,houseCount);
+			changeRate(&inflation,aptInfo,houseInfo,aptCount,houseCount,&inflationRate);
 			pause;
 			break;
 		case 3:
@@ -768,14 +769,13 @@ void displayEachHouse(char nameH[20][20],APTINFO houseInfo[],int houseCount, int
 }//end of displayEachHouse
 
 
-void changeRate(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount){
+void changeRate(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *inflationRate){
 
 	int choice;
 	int result = 0, i =0, j =0;
 	char menuArray[4][80] = {'/0'};
-	double getInflation;
-	double inflationRate=0.0;
-
+	double getInflation=0.0;
+	int flag=0;
 	for (j=0; j<3; j++)
 	{
 		for (i=0; i<35; i++)
@@ -806,19 +806,20 @@ void changeRate(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptC
 	flush;
 	switch(choice){
 	case 1:
-		cahngeInflation(inflation,aptInfo,houseInfo,aptCount,houseCount,&getInflation,&inflationRate);
+		cahngeInflation(inflation,aptInfo,houseInfo,aptCount,houseCount,&getInflation,inflationRate,&flag);
 		
 		break;
 
 	}//end of sweitch
 }//end of changeRate
 
-void cahngeInflation(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *getInflation,double *inflationRate){
+void cahngeInflation(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *getInflation,double *inflationRate,int *flag){
 	
 	int result = 0, i =0, j =0;
 	char menuArray[4][80] = {'/0'};
-	//double getInflation;
+	double getInflationRate=1.0;//temp for inflation rate
 	double getNum;
+
 	cls;
 	for (j=0; j<3; j++)
 	{
@@ -837,6 +838,10 @@ void cahngeInflation(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int
 
 	*getInflation=*inflation;
 
+	if(*flag == 1){
+	getInflationRate=*inflationRate;
+	}//end of if 
+
 	printf("\t\t%s\n", menuArray[0]);
 	printf("\t\t%c      Current Inflation Rate      %c\n", menuArray[3][0], menuArray[3][0]);
 	printf("\t\t%c                                  %c\n", menuArray[3][0], menuArray[3][0]);
@@ -846,37 +851,44 @@ void cahngeInflation(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int
 	printf("\n\t\tEnter Inflation Rate :");
 	scanf("%lf",inflation);
 
+	//(condition)?if true: if false;
+	//ternary operator 
+	
+	for(i=0;i<aptCount;i++){
+			for(j=0;j<aptInfo[i].keepCount;j++){
+
+				aptInfo[i].listings[j].rent=(aptInfo[i].listings[j].rent)/getInflationRate; // getInflationRate is getting 0
+			    aptInfo[i].listings[j].closeSell=(aptInfo[i].listings[j].closeSell)/getInflationRate;
+
+			}//end of for 
+		}//end of for
+
 	if(*getInflation>*inflation){
 		getNum=*getInflation-*inflation;
 		printf("%.2lf%c inflation rate declease\n",getNum,'%');
 		pause;
-		for(i=0;i<aptCount;i++){
-			for(j=0;j<aptInfo[i].keepCount;j++){
-
-				aptInfo[i].listings[j].rent=aptInfo[i].listings[j].rent-*getInflation/100;
-				aptInfo[i].listings[j].closeSell=aptInfo[i].listings[j].closeSell-*getInflation/100;
-			}//end of for 
-		}//end of for 
-		*inflationRate= 1+(*inflation/100);
+		
 	}//end of if 
 
 	else{
 		// getInflation<inflation
 		getNum=*inflation-*getInflation;
 		printf("%.2lf%c Inflation rate inclease\n",getNum,'%');
-		*inflationRate= 1+(*inflation/100);
+		
 		pause;
 	}//end of else
 	
+	*inflationRate= 1+(*inflation/100);
 
 	for(i=0;i<aptCount;i++){
 		for(j=0;j<aptInfo[i].keepCount;j++){
 
 			aptInfo[i].listings[j].rent=*inflationRate*(aptInfo[i].listings[j].rent);
 			aptInfo[i].listings[j].closeSell=*inflationRate*(aptInfo[i].listings[j].closeSell);
+
 		}//end of for 
 	}//end of for 
-	
 	printf("\t\n\nHit Any Keys To Apply The Change!\n\n\n");
-	
+
+	*flag =1;
 }//end of inflation
