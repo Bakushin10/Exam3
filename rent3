@@ -846,16 +846,16 @@ void cahngeInflation(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int
 	printf("\n\t\tEnter Inflation Rate :");
 	scanf("%lf",inflation);
 
-	if(getInflation>inflation){
-		getNum=(getInflation-inflation);
-		printf("%i%c inflation rate declease\n",getNum,'%');
+	if(*getInflation>*inflation){
+		getNum=*getInflation-*inflation;
+		printf("%.2lf%c inflation rate declease\n",getNum,'%');
 		inflationRate= 1-(*inflation/100);
 		pause;
 	}//end of if 
 	else{
 		// getInflation<inflation
-		getNum=(inflation-getInflation);
-		printf("%i%c Inflation rate inclease\n",getNum,'%');
+		getNum=*inflation-*getInflation;
+		printf("%.2lf%c Inflation rate inclease\n",getNum,'%');
 		inflationRate= 1+(*inflation/100);
 		pause;
 	}//end of else
