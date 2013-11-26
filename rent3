@@ -26,11 +26,11 @@ typedef struct{
 	//int cashFlow;
 	//int ANOI;//annual net operating income 
 
-} LISTINFO; //This is fro indivisual room
+} LISTINFO; //This is for indivisual room
 
 typedef struct{
 
-	LISTINFO *listings;//struct inside of struct 
+	LISTINFO *listings;//struct inside of a struct
 
 	int keepCount;
 
@@ -55,6 +55,9 @@ void aptCalcEach(APTINFO aptInfo[],int aptCount,int rent[100],int close[100],int
 void changeRate(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *inflationRate,int *flag2,int flagApt);
 void cahngeInflation(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *getInflation,double *inflationRate,int *flag2);
 
+FILE *fp; // global file pointer. it reachs any functions
+
+
 main(){
 	int choice=0,i,aptCount=0,houseCount=0;
 	int Num=20;
@@ -64,12 +67,13 @@ main(){
 	double inflation=0.0;
 	double inflationRate=0.0;
 	int flag2=0;
+	int readAptKC=0,readAptCount=0;
 
 	APTINFO aptInfo[200];  APTINFO houseInfo[200];
 
 	aptInfo[0].listings = calloc(5, sizeof(LISTINFO));
 
-
+	
 	for(i=0;i<200;i++){//access to ALL 20 arrays 
 		// aptInfo[i].aptName[i]='\0';        houseInfo[i].aptName[i]='\0';
 		//aptInfo[i].day=0;                  houseInfo[i].day=0;
@@ -85,6 +89,19 @@ main(){
 		//aptInfo[i].roomNum=0;              houseInfo[i].roomNum=0;
 	}//end of for 
 
+	fp = fopen("apt.bin", "ab+");// to work for the very first time
+
+	fread(&readAptKC, sizeof(int), 1, fp); //read aptCount from binary
+	fread(&readAptCount,sizeof(int),1,fp); //read keepCount from binary
+
+	fclose(fp); //close the file
+
+	aptCount=readAptCount;
+	aptInfo[aptCount].keepCount=readAptKC;
+
+	printf("apt count is %i\n",aptCount);
+	printf("aptInfo[aptCount].keepCount is %i\n",aptInfo[aptCount].keepCount);
+	pause;
 	do{
 		cls;
 		choice=displayMainMenu();
@@ -242,7 +259,7 @@ void Apt(APTINFO aptInfo[],int *aptCount,char nameA[20][20],int *flagApt){
 	cls;
 	printf("Enter Apartment name :");
 	scanf("%s",nameA[*aptCount]);
-	printf("How many properties of the APT %s would you like to enter?   : ",nameA[*aptCount]);
+	printf("How many properties of the APT %s would you like to enter?   :",nameA[*aptCount]);
 	scanf("%i",&num1);
 
 	aptInfo[*aptCount].listings = (LISTINFO *)calloc(num1,sizeof(LISTINFO)); //calloc will be allocated memory by user input
@@ -262,7 +279,7 @@ void Apt(APTINFO aptInfo[],int *aptCount,char nameA[20][20],int *flagApt){
 		printf("	Enter room number :");
 		scanf("%i",&aptInfo[*aptCount].listings[i].roomNum);
 		//printf(" address is %x\n",&aptInfo[*aptCount].listings->roomNum);
-		printf("	Enter the rent of %s room %i :$ ",nameA[*aptCount],aptInfo[*aptCount].listings[i].roomNum);
+		printf("	Enter the rent of %s room %i :$",nameA[*aptCount],aptInfo[*aptCount].listings[i].roomNum);
 		scanf("%i",&aptInfo[*aptCount].listings[i].rent);
 		printf("	Enter close sell of the Apt %s :$",nameA[*aptCount]);
 		scanf("%i",&aptInfo[*aptCount].listings[i].closeSell);
@@ -521,7 +538,7 @@ void addApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt){
 
 		temp = (LISTINFO*)calloc(getKeep, sizeof(LISTINFO));//create temp place to store
 
-		aptInfo[a].keepCount=total;
+		aptInfo[a].keepCount=total; //reassign aptInfo[a].keepCount
 
 		for(i=0;i<getKeep;i++){ //copying memories into tempStore...
 
@@ -535,7 +552,7 @@ void addApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt){
 
 		for(i=0;i<add;i++){ //adding new info on top of the new array...
 
-			printf("%i/%i\n",i+1,num1);
+			printf("%i/%i\n",i+1,add);
 			printf(" Enter room number :");
 			scanf("%i",&aptInfo[a].listings[i].roomNum);
 			printf(" Enter the rent of %s room %i :$ ",nameA[a],aptInfo[a].listings[i].roomNum);
@@ -776,6 +793,7 @@ void changeRate(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptC
 	int result = 0, i =0, j =0;
 	char menuArray[4][80] = {'/0'};
 	double getInflation=0.0;
+
 	for (j=0; j<3; j++)
 	{
 		for (i=0; i<35; i++)
