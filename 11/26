@@ -3,7 +3,6 @@
 
 Shin Nagai
 
-
 */
 
 #include<stdio.h>
@@ -41,35 +40,32 @@ typedef struct{
 int displayMainMenu();
 void enterDate(APTINFO aptInfo[],APTINFO houseInfo[],int *aptCount, int *houseCount,char nameA[20][20],char nameH[20][20],
 	int *flagApt,int *flagHouse);
-void home(APTINFO houseInfo[],int *houseCount,char nameH[20][20],int *flagHouse);
 void Apt(APTINFO aptInfo[],int *aptCount,char nameA[20][20],int *flagApt);
-void display(APTINFO aptInfo[],APTINFO houseInfo[],int aptCount, int houseCount,char nameA[20][20],char nameH[20][20],int flagApt, int flagHouse);
-void displayApt(APTINFO aptInfo[],int aptCount,char nameA[20][20],int flagApt);
-void displayHouse(APTINFO houseInfo[],int houseCount,char nameH[20][20],int flagHouse);
+void display(APTINFO aptInfo[],APTINFO houseInfo[],int aptCount, int houseCount,char nameA[20][20],char nameH[20][20],int flagApt, 
+	int flagHouse,int rent[100],int close[100]);
+void displayApt(APTINFO aptInfo[],int aptCount,char nameA[20][20],int flagApt,int rent[100],int close[100]);
 void aptCulc(APTINFO aptInfo[],int aptCount,int rent[100],int close[100],int *rentAve,int *closeAve);
-void houseCulc(APTINFO houseInfo[], int houseCount/*Need * ? */);
 void addApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt);
-void addHome(char nameH[20][20],APTINFO houseInfo[],int houseCount,int flagHouse);
 void displayEeachApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt);
-void displayEachHouse(char nameH[20][20],APTINFO houseInfo[],int houseCount, int flagHouse);
-void aptCalcEach(APTINFO aptInfo[],int aptCount,int rent[100],int close[100],int *rentAverageF,int *closeAverageF);
 void changeRate(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *inflationRate,int *flag2,int flagApt);
 void cahngeInflation(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *getInflation,double *inflationRate,int *flag2);
-
+void sort(APTINFO aptInfo[],int *aptCount,char nameA[20][20],int rent[100],int close[100]);
+void rentSort(APTINFO aptInfo[], int *aptCount,char nameA[20][20],int rent[100],int close[100]);
+void closeSort(APTINFO aptInfo[], int *aptCount,char nameA[20][20],int rent[100],int close[100]);
 FILE *fp; // global file pointer. it reachs any functions
 
 
 main(){
 	int choice=0,i,aptCount=0,houseCount=0;
 	int Num=20;
+	int rent[100],close[100];
 	char nameA[20][20]={"\0"}; //for store apt names 
 	char nameH[20][20]={"\0"}; //for store house names
 	int flagApt=0,flagHouse=0;
 	double inflation=0.0;
 	double inflationRate=0.0;
 	int flag2=0;
-	//int readAptKC=0; 
-	int readAptCount=0;
+	int readAptKC=0,readAptCount=0;
 
 	APTINFO aptInfo[200];  APTINFO houseInfo[200];
 
@@ -91,27 +87,7 @@ main(){
 		//aptInfo[i].roomNum=0;              houseInfo[i].roomNum=0;
 	}//end of for 
 
-	fp = fopen("apt.bin", "ab+");// to work for the very first time
-
-	//fread(&readAptKC, sizeof(int), 1, fp); //read aptCount from binary
-	fread(&readAptCount,sizeof(int),1,fp); //read keepCount from binary
-
-	fclose(fp); //close the file
-
-	aptCount=readAptCount;
-
-	if(aptCount > 0){
-		fp = fopen("apt.bin", "rb"); //read from binary file 
-		fseek(fp, sizeof(int), SEEK_SET); // skip over...
-		fread(&aptInfo,sizeof(APTINFO), 200, fp);//read from binary file 
-		fclose(fp); //close binary file
-	}//end of if 
-	//aptInfo[aptCount].keepCount=readAptKC;
-
-	printf("apt count is %i\n",aptCount);
-	printf("aptInfo[aptCount].keepCount is %i\n",aptInfo[aptCount].keepCount);
-	pause;
-
+	
 	do{
 		cls;
 		choice=displayMainMenu();
@@ -120,24 +96,22 @@ main(){
 
 		case 1:
 			enterDate(aptInfo,houseInfo,&aptCount,&houseCount,nameA,nameH,&flagApt,&flagHouse);
-
-			fp = fopen("apt.bin", "wb"); //open for writing done       
-			fwrite(&aptCount, sizeof(int), 1, fp);
-			fwrite(&aptInfo,sizeof(APTINFO), 200, fp); // doesnt update
-			fclose(fp);//close 
-
-			pause;
-			break;
-		case 2:
-			changeRate(&inflation,aptInfo,houseInfo,aptCount,houseCount,&inflationRate,&flag2,flagApt);
 			pause;
 			break;
 		case 3:
-			display(aptInfo,houseInfo,aptCount,houseCount,nameA,nameH,flagApt,flagHouse);
+			changeRate(&inflation,aptInfo,houseInfo,aptCount,houseCount,&inflationRate,&flag2,flagApt);
 			pause;
 			break;
-		case 6:
-			printf("\n\n see you ");
+		case 2:
+			display(aptInfo,houseInfo,aptCount,houseCount,nameA,nameH,flagApt,flagHouse,rent,close);
+			pause;
+			break;
+		case 4:
+			sort(aptInfo,&aptCount,nameA,rent ,close);
+			pause;
+			break;
+		case 5:
+			printf("\n\n	see you ");
 			pause;
 			break;
 		}//end of switch 
@@ -171,12 +145,11 @@ int displayMainMenu(){
 	printf("\t\t%s\n", menuArray[0]);
 	printf("\t\t%c             MAIN MENU            %c\n", menuArray[3][0], menuArray[3][0]);
 	printf("\t\t%s\n", menuArray[1]);
-	printf("\t\t%c1)  Enter Apt/House info          %c\n", menuArray[3][0], menuArray[3][0]);
-	printf("\t\t%c2)  Apply/Change the rating       %c\n", menuArray[3][0], menuArray[3][0]);
-	printf("\t\t%c3)  Display                       %c\n", menuArray[3][0], menuArray[3][0]);
+	printf("\t\t%c1)  Enter Apt info                %c\n", menuArray[3][0], menuArray[3][0]);
+	printf("\t\t%c2)  Display                       %c\n", menuArray[3][0], menuArray[3][0]);
+	printf("\t\t%c3)  Apply/Change the rating       %c\n", menuArray[3][0], menuArray[3][0]);
 	printf("\t\t%c4)  Search                        %c\n", menuArray[3][0], menuArray[3][0]);
-	printf("\t\t%c5)  Sort                          %c\n", menuArray[3][0], menuArray[3][0]);
-	printf("\t\t%c6)  Quit                          %c\n", menuArray[3][0], menuArray[3][0]);
+	printf("\t\t%c5)  Quit                          %c\n", menuArray[3][0], menuArray[3][0]);
 	printf("\t\t%s\n", menuArray[2]);
 	printf("\n\t\tEnter a choice :");
 	scanf("%i", &result);
@@ -185,7 +158,6 @@ int displayMainMenu(){
 
 	return result;
 }//end main menu
-
 
 void enterDate(APTINFO aptInfo[],APTINFO houseInfo[],int *aptCount, int *houseCount,char nameA[20][20],char nameH[20][20],int *flagApt,int *flagHouse){
 	int choice=0;
@@ -210,64 +182,24 @@ void enterDate(APTINFO aptInfo[],APTINFO houseInfo[],int *aptCount, int *houseCo
 	cls;
 	printf("\t\t%s\n", menuArray[0]);
 	printf("\t\t%c1)  Create New Apt Info           %c\n", menuArray[3][0], menuArray[3][0]);
-	printf("\t\t%c2)  Create New House Info         %c\n", menuArray[3][0], menuArray[3][0]);
-	printf("\t\t%c3)  Add Apt Info                  %c\n", menuArray[3][0], menuArray[3][0]);
-	printf("\t\t%c4)  Add House Info                %c\n", menuArray[3][0], menuArray[3][0]);
+	printf("\t\t%c2)  Add Apt Info                  %c\n", menuArray[3][0], menuArray[3][0]);
 	printf("\t\t%s\n", menuArray[2]);
 	printf("\n\t\tEnter a Choice :");
 	scanf("%i",&choice);
-
+	flush;
 	switch(choice){
 	case 1:
 		Apt(aptInfo,aptCount,nameA,flagApt);
 		pause;
 		break;
 	case 2:
-		home(houseInfo,houseCount,nameH,flagHouse);
-		//houseCulc(houseInfo,*houseCount);
-		pause;
-		break;
-	case 3:
 		addApt(nameA,aptInfo,*aptCount,*flagApt);//flag need to be pointer
-		pause;
-		break;
-	case 4:
-		addHome(nameH,houseInfo,*houseCount,*flagHouse);
 		pause;
 		break;
 
 	}//end of switch
 
 }//end of enterDate
-
-void home(APTINFO houseInfo[],int *houseCount,char nameH[20][20],int *flagHouse){
-
-	int num1=0,i;
-
-	cls;
-	printf("Enter house name :");
-	scanf("%s",nameH[*houseCount]);
-	printf("How many properties of the APT %s would you like to enter?   : ",nameH[*houseCount]);
-	scanf("%i",&num1);
-
-	houseInfo[*houseCount].listings = (LISTINFO*)calloc(num1,sizeof(LISTINFO)); //calloc will be allocated memory by user input
-
-
-	for(i=0;i<num1;i++){
-		printf("%i/%i\n",i+1,num1);
-		printf("	Enter House number :");
-		scanf("%i",&houseInfo[*houseCount].listings[i].roomNum);
-		printf("	Enter the rent of %s room %i :$ ",nameH[*houseCount],houseInfo[*houseCount].listings[i].roomNum);
-		scanf("%i",&houseInfo[*houseCount].listings[i].rent);
-		printf("	Enter close sell of the Apt %s :$",nameH[*houseCount]);
-		scanf("%i",&houseInfo[*houseCount].listings[i].closeSell);
-	}//end of for 
-
-	houseInfo[*houseCount].keepCount=num1;//store the nnmber of num1;
-
-	*flagHouse=1;
-	(*houseCount)++;//counter for house is incremented by 1
-}//home
 
 void Apt(APTINFO aptInfo[],int *aptCount,char nameA[20][20],int *flagApt){
 	int num1=0,i;
@@ -294,11 +226,14 @@ void Apt(APTINFO aptInfo[],int *aptCount,char nameA[20][20],int *flagApt){
 		printf("%i/%i\n",i+1,num1);
 		printf("	Enter room number :");
 		scanf("%i",&aptInfo[*aptCount].listings[i].roomNum);
+		flush;
 		//printf(" address is %x\n",&aptInfo[*aptCount].listings->roomNum);
 		printf("	Enter the rent of %s room %i :$",nameA[*aptCount],aptInfo[*aptCount].listings[i].roomNum);
 		scanf("%i",&aptInfo[*aptCount].listings[i].rent);
+		flush;
 		printf("	Enter close sell of the Apt %s :$",nameA[*aptCount]);
 		scanf("%i",&aptInfo[*aptCount].listings[i].closeSell);
+		flush;
 
 	}//end of for
 
@@ -321,6 +256,7 @@ void aptCulc(APTINFO aptInfo[],int aptCount,int rent[100],int close[100],int *re
 	num=aptInfo[aptCount].keepCount;
 
 	aptInfo[aptCount].listings[count].closeSell;
+
 	for(i=0;i<aptCount;i++){
 		for(j=0;j<aptInfo[i].keepCount;j++){
 			rentTotal= rentTotal+aptInfo[i].listings[j].rent;
@@ -350,15 +286,7 @@ void aptCulc(APTINFO aptInfo[],int aptCount,int rent[100],int close[100],int *re
 
 }//end of calc
 
-void houseCulc(APTINFO houseInfo[], int houseCount/*Need * ? */){
-
-	//All the calcurations will be done here 
-
-
-
-}//end of houseculc
-
-void display(APTINFO aptInfo[],APTINFO houseInfo[],int aptCount, int houseCount,char nameA[20][20],char nameH[20][20],int flagApt, int flagHouse){
+void display(APTINFO aptInfo[],APTINFO houseInfo[],int aptCount, int houseCount,char nameA[20][20],char nameH[20][20],int flagApt, int flagHouse,int rent[100],int close[100]){
 
 	int choice;
 	int result = 0, i =0, j =0;
@@ -380,37 +308,30 @@ void display(APTINFO aptInfo[],APTINFO houseInfo[],int aptCount, int houseCount,
 	menuArray[3][0]=179;
 	cls;
 	printf("\t\t%s\n", menuArray[0]);
-	printf("\t\t%c1)  See All Apt Info              %c\n", menuArray[3][0], menuArray[3][0]);
-	printf("\t\t%c2)  See All House Info            %c\n", menuArray[3][0], menuArray[3][0]);
-	printf("\t\t%c3)  See Each Apt  Info            %c\n", menuArray[3][0], menuArray[3][0]);
-	printf("\t\t%c4)  See Each House Info           %c\n", menuArray[3][0], menuArray[3][0]);
+	printf("\t\t%c1)  See Each Apt Info             %c\n", menuArray[3][0], menuArray[3][0]);
+	printf("\t\t%c2)  See All Apt  Info             %c\n", menuArray[3][0], menuArray[3][0]);
 	printf("\t\t%s\n", menuArray[2]);
 	printf("\n\t\tEnter a Choice :");
 	scanf("%i",&choice);
 
 	switch(choice){
-	case 1:
-		displayApt(aptInfo,aptCount,nameA,flagApt);
+	case 2:
+		displayApt(aptInfo,aptCount,nameA,flagApt,rent,close);
 		flush;
 		break;
-	case 2:
-		displayHouse(houseInfo,houseCount,nameH,flagHouse);
-		break;
-	case 3:
+	case 1:
 		displayEeachApt(nameA,aptInfo,aptCount,flagApt);
 		break;
-	case 4:
-		displayEachHouse(nameH,houseInfo,houseCount,flagHouse);
 	}//end of switch
 
 }//end of display
 
-void displayApt(APTINFO aptInfo[],int aptCount,char nameA[20][20],int flagApt){
+void displayApt(APTINFO aptInfo[],int aptCount,char nameA[20][20],int flagApt, int rent[100],int close[100]){
 
 	int i,j,xa=0;
 	int result = 0, p =0, y=0;
 	char menuArray[4][80] = {'/0'};
-	int rent[100],close[100];
+	//int rent[100],close[100]; //this is a local variable
 	int rentAve=0;
 	int closeAve=0;
 
@@ -449,19 +370,20 @@ void displayApt(APTINFO aptInfo[],int aptCount,char nameA[20][20],int flagApt){
 	menuArray[2][60]=207;
 	menuArray[2][70]=207;
 
-	//if(flagApt==0){
-	if(aptCount == 0){
+	if(flagApt==0){
 		cls;
 		printf("	Enter User Input first\n");
 	}//end of if 
 
 	else{
 		cls;
+		// go to the another function 
 		aptCulc(aptInfo,aptCount,rent,close,&rentAve,&closeAve); // all the math will be done here
+
 		printf("RENT+/- shows each rent is how much more expensive (+) or cheaper(-)  \n");
-		printf("from Average rent of all\n\n");
+		printf("from the Average rent of all\n\n");
 		printf("Clse+/- shows each close Sell is how much more expensive (+) or cheaper(-)\n");
-		printf("from Average close sell of all\n\n\n");
+		printf("from the Average close sell of all\n\n\n");
 		printf("+++  Averae rent of all is %i +++\n",rentAve);
 		printf("+++  Average close sell of all is %i +++\n\n",closeAve);
 		printf("%s\n", menuArray[0]);
@@ -469,8 +391,6 @@ void displayApt(APTINFO aptInfo[],int aptCount,char nameA[20][20],int flagApt){
 			menuArray[1][40],menuArray[1][50],menuArray[1][60],menuArray[1][70],menuArray[1][0]);
 		printf("%s\n", menuArray[2]);
 		for(i=0;i<aptCount;i++){
-			//printf("\nAPT:%s\n\n",nameA[i]);
-			//printf("----\t----\t--\t\n");
 			for(j=0;j<aptInfo[i].keepCount;j++){
 				printf("%c%s\t  %c%i\t    %c$%i     %c$%i\t %i\t\t%i\n",menuArray[1][10],nameA[i],menuArray[1][10],aptInfo[i].listings[j].roomNum,menuArray[1][10],aptInfo[i].listings[j].rent,
 					menuArray[1][10],aptInfo[i].listings[j].closeSell,rent[xa],close[xa]);
@@ -478,35 +398,9 @@ void displayApt(APTINFO aptInfo[],int aptCount,char nameA[20][20],int flagApt){
 			}//end of for
 		}//end of outer for
 
-
 	}//end of big else
 	flush;
 }//end of display
-
-void displayHouse(APTINFO houseInfo[],int houseCount,char nameH[20][20],int flagHouse){
-
-	int i,j;
-
-	if(flagHouse==0){
-		cls;
-		printf("	Enter User Input first\n");
-	}//end of if 
-
-	else{
-		cls;
-		printf("HOUSE\tROOM\tRENT\tCS\t\n");
-		printf("-----\t----\t----\t--\t\n");
-		for(i=0;i<houseCount;i++){
-			//printf("\nAPT:%s\n\n",nameH[i]);
-			//printf("----\t----\t--\t\n");
-			for(j=0;j<houseInfo[i].keepCount;j++){
-				printf("%s\t%i\t%i\t%i\t\n",nameH[i],houseInfo[i].listings[j].roomNum,houseInfo[i].listings[j].rent,
-					houseInfo[i].listings[j].closeSell);
-			}//end of for
-		}//end of outer for 
-	}//end of big else
-	flush;
-}//end of displayHouse
 
 void addApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt){
 
@@ -527,7 +421,7 @@ void addApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt){
 			printf("%i.%s\n",i+1,nameA[i]);
 		}//end of for 
 
-		printf("Which apt would you want to add on?");
+		printf("Enter a number that you want to add on ");
 		scanf("%i",&num1);
 		flush;
 		if(num1>aptCount){
@@ -538,9 +432,9 @@ void addApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt){
 					printf("%i.%s\n",i+1,nameA[i]);
 				}//end of for 
 
-				printf("Which apt would you want to add on?");
+				printf("Enter a number that you want to add on ");
 				scanf("%i",&num1);
-
+				flush;
 			}while(num1>aptCount);
 		}//end of if 
 
@@ -548,7 +442,7 @@ void addApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt){
 
 		printf("How many properties of the APT %s would you like to enter?   : ",nameA[a]);
 		scanf("%i",&add);
-
+		flush;
 		getKeep=aptInfo[a].keepCount;
 
 		total=getKeep+add;
@@ -565,17 +459,20 @@ void addApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt){
 
 		}//end of for 
 
-		aptInfo[a].listings = (LISTINFO*)calloc(total,sizeof(APTINFO)); //re-allocate the memory  
+		aptInfo[a].listings = (LISTINFO*)calloc(total,sizeof(APTINFO)); //re-allocate the memory 
 
 		for(i=0;i<add;i++){ //adding new info on top of the new array...
 
 			printf("%i/%i\n",i+1,add);
 			printf(" Enter room number :");
 			scanf("%i",&aptInfo[a].listings[i].roomNum);
+			flush;
 			printf(" Enter the rent of %s room %i :$ ",nameA[a],aptInfo[a].listings[i].roomNum);
 			scanf("%i",&aptInfo[a].listings[i].rent); 
+			flush;
 			printf(" Enter close sell of the Apt %s :$",nameA[a]);
 			scanf("%i",&aptInfo[a].listings[i].closeSell);
+			flush;
 
 		}//end of for
 
@@ -590,95 +487,6 @@ void addApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt){
 		}//end of for
 	}//end of big else
 }//end of addApt
-
-void addHome(char nameH[20][20],APTINFO houseInfo[],int houseCount,int flagHouse){
-
-	int i,num1=0,add=0,getKeep=0,total=0;
-	int a=0;
-
-	LISTINFO *temp; //LISTINFO *temp = calloc(getKeep, sizeof(LISTINFO));
-
-	if(flagHouse == 0){
-		cls;
-		printf("	Enter User Input first\n");
-	}//end of if 
-
-	else{
-
-		cls;
-		for(i=0;i<houseCount;i++){
-			printf("%i.%s\n",i+1,nameH[i]);
-		}//end of for 
-
-		printf("Which apt would you want to add on?");
-		scanf("%i",&num1);
-		flush;
-		if(num1>houseCount){
-			printf("Invalid input. Please choose again\n");
-			do{
-				cls;
-				for(i=0;i<houseCount;i++){
-					printf("%i.%s\n",i+1,nameH[i]);
-				}//end of for 
-
-				printf("Which apt would you want to add on?");
-				scanf("%i",&num1);
-
-			}while(num1>houseCount);
-		}//end of if 
-
-		a=num1-1;//num1-1
-
-		printf("How many properties of the APT %s would you like to enter?   : ",nameH[a]);
-		scanf("%i",&add);
-
-		getKeep=houseInfo[a].keepCount;
-
-		total=getKeep+add;
-
-		temp = (LISTINFO*)calloc(getKeep, sizeof(LISTINFO));//create temp place to store
-
-		houseInfo[a].keepCount=total;
-
-		for(i=0;i<getKeep;i++){ //copying memories into tempStore...
-
-			temp[i].roomNum=houseInfo[a].listings[i].roomNum;
-			temp[i].rent=houseInfo[a].listings[i].rent;
-			temp[i].closeSell=houseInfo[a].listings[i].rent;
-
-		}//end of for 
-
-		houseInfo[a].listings = (LISTINFO*)calloc(total,sizeof(APTINFO)); //re-allocate the memory 
-
-		for(i=0;i<add;i++){ //adding new info on top of the new array...
-
-			printf("%i/%i\n",i+1,num1);
-			printf("	Enter room number :");
-			scanf("%i",&houseInfo[a].listings[i].roomNum);
-			printf("	Enter the rent of %s room %i :$ ",nameH[a],houseInfo[a].listings[i].roomNum);
-			scanf("%i",&houseInfo[a].listings[i].rent); 
-			printf("	Enter close sell of the Apt %s :$",nameH[a]);
-			scanf("%i",&houseInfo[a].listings[i].closeSell);
-
-		}//end of for
-
-		i=0;
-		for(add;add<total;add++){ //getting previous memories from temoStore
-
-			houseInfo[a].listings[add].roomNum=temp[i].roomNum;
-			houseInfo[a].listings[add].rent=temp[i].rent;
-			houseInfo[a].listings[add].closeSell=temp[i].closeSell;
-			i++;
-
-		}//end of for
-	}//end of big else
-}//end of addHome
-
-void aptCalcEach(APTINFO aptInfo[],int aptCount,int rent[100],int close[100],int *rentAverageF,int *closeAverageF){
-
-
-
-}//end of aptCalcEach
 
 void displayEeachApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagApt){
 
@@ -702,18 +510,18 @@ void displayEeachApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagA
 
 		printf("\nEnter an Apartment Number that you like to see :");
 		scanf("%i",&num1);
-
+		flush;
 		if(num1>aptCount){
 			do{
 				cls;
-				printf("	Invalid Input\n");
-				printf("	Please Try again\n\n");
-				pause;
+				printf("++		Invalid Input		++\n");
+				printf("++		Please Try again	++\n\n");
 				for(i=0;i<aptCount;i++){
 					printf("%i. %s\n",i+1,nameA[i]);
 				}//end of for 
 				printf("\nEnter an Apartment Number that you like to see :");
 				scanf("%i",&num1);
+				flush;
 			}while(num1>aptCount);
 		}//end of if 
 
@@ -747,62 +555,6 @@ void displayEeachApt(char nameA[20][20],APTINFO aptInfo[],int aptCount,int flagA
 		printf("The average close sell rent is %i\n\n",closeTotal);
 	}//end of big else 
 }//end of displayEeachApt
-
-void displayEachHouse(char nameH[20][20],APTINFO houseInfo[],int houseCount, int flagHouse){
-
-	int i,num1=0;
-	int getNum=0;
-	int rentAve=0,aveTotal=0;
-
-	if(flagHouse == 0){
-		cls;
-		printf("	Please Enter Apt info First\n\n");
-	}//end of if
-
-	else{
-		cls;
-		for(i=0;i<houseCount;i++){
-			printf("%i. %s\n",i+1,nameH[i]);
-		}//end of for 
-
-		printf("\nEnter an Apartment Number that you like to see :");
-		scanf("%i",&num1);
-
-		if(num1>houseCount){
-			do{
-				cls;
-				printf("	Invalid Input\n");
-				printf("	Please Try again\n\n");
-				pause;
-				for(i=0;i<houseCount;i++){
-					printf("%i. %s\n",i+1,nameH[i]);
-				}//end of for 
-				printf("\nEnter an Apartment Number that you like to see :");
-				scanf("%i",&num1);
-			}while(num1>houseCount);
-		}//end of if 
-
-		getNum=num1-1;
-		pause;
-
-		for(i=0;i<houseInfo[getNum].keepCount;i++){
-			rentAve=rentAve+houseInfo[getNum].listings[i].rent;
-		}//end of for
-
-		aveTotal=rentAve/houseInfo[getNum].keepCount;
-		cls;
-		printf("APT\tROOM\tRENT\tCS\t\n");
-		printf("---\t----\t----\t\--\t\n");
-
-		for(i=0;i<houseInfo[getNum].keepCount;i++){
-			printf("%s\t%i\t%i\t%i\t\n",nameH[getNum],houseInfo[getNum].listings[i].roomNum,houseInfo[getNum].listings[i].rent,
-				houseInfo[getNum].listings[i].closeSell);
-		}//end of for
-
-		printf("The average rent is %i\n\n",aveTotal);
-	}//end of big else 
-}//end of displayEachHouse
-
 
 void changeRate(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int aptCount,int houseCount,double *inflationRate,int *flag2,int flagApt){
 
@@ -933,3 +685,97 @@ void cahngeInflation(double *inflation,APTINFO aptInfo[],APTINFO houseInfo[],int
 	*flag2 = 1;
 }//end of inflation
 
+void sort(APTINFO aptInfo[],int *aptCount,char nameA[20][20],int rent[100],int close[100]){
+
+	int choice=0;
+
+	printf("Choose categoly You want to sort by\n");
+	printf("1 . Rent\n");
+	printf("2 . Close sell");
+    scanf("%i",&choice);
+	flush;
+	 switch(choice){
+			case 1:
+				rentSort(aptInfo,aptCount,nameA,rent,close);
+				break;
+			case 2:
+				closeSort(aptInfo,aptCount,nameA,rent,close);
+				break;
+
+
+	 }//end of choice
+
+}//end of sort
+
+void rentSort(APTINFO aptInfo[], int *aptCount,char nameA[20][20],int rent[100],int close[100]){
+	int i=0,j,a;
+	char tempName[20];
+	LISTINFO *temp;
+	temp = (LISTINFO*)calloc(1, sizeof(LISTINFO));
+	cls;
+	printf("Sorted by rentSort\n");
+	pause;
+	printf("\n	Now You can sell the result in the Display 'See Each Apt Info' \n\n  ");
+	for(i=0;i<*aptCount;i++){ // This is for each array 
+
+		for(a=0;a<aptInfo[i].keepCount-1;a++){ // arrays need to be swapped keepCount-1 times 
+
+			for(j=0;j<aptInfo[i].keepCount-1;j++){
+
+				if((aptInfo[i].listings[j].rent) > (aptInfo[i].listings[j+1].rent)){
+
+					temp->rent=aptInfo[i].listings[j].rent;
+					aptInfo[i].listings[j].rent = aptInfo[i].listings[j+1].rent;
+					aptInfo[i].listings[j+1].rent = temp->rent;
+
+					temp->closeSell = aptInfo[i].listings[j].closeSell;
+					aptInfo[i].listings[j].closeSell = aptInfo[i].listings[j+1].closeSell;
+					aptInfo[i].listings[j+1].closeSell = temp->closeSell;
+
+					temp->roomNum = aptInfo[i].listings[j].roomNum;
+					aptInfo[i].listings[j].roomNum =  aptInfo[i].listings[j+1].roomNum;
+					aptInfo[i].listings[j+1].roomNum = temp->roomNum;
+				}//end of if 
+
+			}//end of for
+		}//end of outer for
+	}//end of for 
+	
+}//end of rentSort
+
+void closeSort(APTINFO aptInfo[], int *aptCount,char nameA[20][20],int rent[100],int close[100]){
+
+	int i=0,j,a;
+	char tempName[20];
+	LISTINFO *temp;
+	temp = (LISTINFO*)calloc(1, sizeof(LISTINFO));
+	cls;
+	printf("Sorted by Close sell\n");
+	pause;
+	printf("\n	Now You can sell the result in the Display 'See Each Apt Info' \n\n  ");
+	for(i=0;i<*aptCount;i++){ // This is for each array 
+
+		for(a=0;a<aptInfo[i].keepCount-1;a++){ // arrays need to be swapped keepCount-1 times 
+
+			for(j=0;j<aptInfo[i].keepCount-1;j++){
+
+				if((aptInfo[i].listings[j].closeSell) > (aptInfo[i].listings[j+1].closeSell)){
+
+					temp->rent=aptInfo[i].listings[j].rent;
+					aptInfo[i].listings[j].rent = aptInfo[i].listings[j+1].rent;
+					aptInfo[i].listings[j+1].rent = temp->rent;
+
+					temp->closeSell = aptInfo[i].listings[j].closeSell;
+					aptInfo[i].listings[j].closeSell = aptInfo[i].listings[j+1].closeSell;
+					aptInfo[i].listings[j+1].closeSell = temp->closeSell;
+
+					temp->roomNum = aptInfo[i].listings[j].roomNum;
+					aptInfo[i].listings[j].roomNum =  aptInfo[i].listings[j+1].roomNum;
+					aptInfo[i].listings[j+1].roomNum = temp->roomNum;
+				}//end of if 
+			}//end of for
+		}//end of outer for
+	}//end of for 
+
+
+}//end of close sell 
